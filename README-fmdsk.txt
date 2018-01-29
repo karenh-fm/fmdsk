@@ -18,13 +18,26 @@ Instructions:
 ~ Manually Load/Unload Driver ~
 ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
 
-Use this method to immediately load and unload the driver from the command line.
-The driver load will not automatically reload on reboot.
+There are 2 methods to manually load/unload the driver.
 
-To load driver, type the following command:
+1. Use this method to immediately load and unload a driver from the command
+   line that has NOT been previously installed in the kernel (i.e. load
+   driver from the driver project's directory).
+
+   To load driver, type the following command:
+	# insmod  ./fmdsk.ko [optional command line parameters]
+
+   To unload driver, type the following command:
+	# rmmod fmdsk
+
+2. Use this method to immediately load and unload a driver from the command
+   line that has been previously installed in the kernel (see
+   Install/Uninstall Driver).
+
+   To load driver, type the following command:
 	# modprobe fmdsk.ko [optional command line parameters]
 
-To unload driver, type the following command:
+   To unload driver, type the following command:
 	# modprobe -r fmdsk
 
 ~~~~~~~~~~~~~~~~~~~~~~~~~~~~
