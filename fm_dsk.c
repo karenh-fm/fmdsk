@@ -460,13 +460,19 @@ static struct fmd_device_t *fmd_alloc_dev(int i, int dev_type)
 
 	printk(KERN_INFO "%s%d: %s\n", DRIVER_NAME, i, __func__);
 
+#if CACHE_PAGES
 	fmd = kzalloc(sizeof(struct fmd_device_t) + sizeof(struct fmd_cache_t), GFP_KERNEL);
+#else
+	fmd = kzalloc(sizeof(struct fmd_device_t), GFP_KERNEL);
+#endif
 	if (!fmd)
 		goto out;
 
 	fmd->num = i;
 	fmd->dev_type = dev_type;
+#if CACHE_PAGES
 	fmd->cache = fmd + sizeof(struct fmd_device_t);
+#endif
 	sprintf(fmd->dev_name, "%s%d", (dev_type == FMD_DEV_TYPE_DSK) ? DEV_NAME_DSK : DEV_NAME_MEM, i);
 	spin_lock_init(&fmd->lock);
 

@@ -182,14 +182,16 @@ void fmd_memory_cleanup_manual(struct fmd_device_t *fmd)
 	    fmd->virt = NULL;
 	}
 
-	if (cache->phys != 0 && cache->nr_pages != 0) {
-	    release_mem_region(cache->phys, cache->nr_pages * PAGE_SIZE);
-            cache->phys = 0;
-	    cache->nr_pages = 0;
-	}
-	if (cache->virt) {
-	    iounmap(cache->virt);
-	    cache->virt = NULL;
+	if (cache) {
+		if (cache->phys != 0 && cache->nr_pages != 0) {
+		    release_mem_region(cache->phys, cache->nr_pages * PAGE_SIZE);
+		    cache->phys = 0;
+		    cache->nr_pages = 0;
+		}
+		if (cache->virt) {
+		    iounmap(cache->virt);
+		    cache->virt = NULL;
+		}
 	}
 }
 
