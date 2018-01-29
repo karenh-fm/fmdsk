@@ -82,26 +82,25 @@ int fmd_mempool_init(struct fmd_device_t *fmd)
         }
 
         /* Allocate a pool of page structs for MANUAL memory allocation */
-        if (MEM_ALLOC_METHOD == MEM_MANUAL) {
-                cache->page_slab = kzalloc(sizeof(struct page) * fmd->nr_pages, 
-					   GFP_KERNEL);
-                if (!cache->page_slab) {
-			printk(KERN_INFO "%s: %s: Error allocating page slab\n",
-			       fmd->dev_name, __func__);
-                        goto err_exit_cache_init;
-                }
-                cache->page_pool = mempool_create_slab_pool(sizeof(struct page),
-                                                            cache->page_slab);
-                if (!cache->page_pool) {
-			printk(KERN_INFO "%s: %s: Error allocating page pool\n",
-			       fmd->dev_name, __func__);
-                        goto err_exit_cache_init;
-                }
 
-		//TODO: Map page struct to pages for faster lookup in fast path
+        cache->page_slab = kzalloc(sizeof(struct page) * fmd->nr_pages,
+					   GFP_KERNEL);
+        if (!cache->page_slab) {
+		printk(KERN_INFO "%s: %s: Error allocating page slab\n",
+			       fmd->dev_name, __func__);
+                goto err_exit_cache_init;
+        }
+        cache->page_pool = mempool_create_slab_pool(sizeof(struct page),
+                                                    cache->page_slab);
+        if (!cache->page_pool) {
+		printk(KERN_INFO "%s: %s: Error allocating page pool\n",
+		       fmd->dev_name, __func__);
+                goto err_exit_cache_init;
         }
 
-        return 0;
+	//TODO: Map page struct to pages for faster lookup in fast path
+
+	return 0;
 
 err_exit_cache_init:
         fmd_mempool_cleanup(fmd);
@@ -119,18 +118,16 @@ void fmd_mempool_cleanup(struct fmd_device_t *fmd)
 	printk(KERN_INFO "%s: %s\n", fmd->dev_name, __func__);
 
 	/* Free pool of page structs for MANUAL memory allocation */
-        if (MEM_ALLOC_METHOD == MEM_MANUAL) {
-                if (cache->page_pool) {
-                        mempool_destroy(cache->page_pool);
-                        cache->page_pool = NULL;
-                }
-                if (cache->page_slab) {
-                        kfree(cache->page_slab);
-                        cache->page_slab = NULL;
-                }
-        }
+	if (cache->page_pool) {
+		mempool_destroy(cache->page_pool);
+		cache->page_pool = NULL;
+	}
+	if (cache->page_slab) {
+		kfree(cache->page_slab);
+		cache->page_slab = NULL;
+	}
 
-        /* Free cache mempool and slab */
+	/* Free cache mempool and slab */
         if (cache->mempool) {
                 mempool_destroy(cache->mempool);
                 cache->mempool = NULL;
@@ -153,29 +150,23 @@ static struct page *fmd_mempool_alloc_page(struct fmd_device_t *fmd)
 
 	printk(KERN_INFO "%s: %s\n", fmd->dev_name, __func__);
 
-	if (MEM_ALLOC_METHOD == MEM_MANUAL) {
-		//TODO: Map page struct to pages during init, then only pull from page pool during runtime.
-		page = (struct page *) mempool_alloc(cache->page_pool, GFP_KERNEL);
-		if (!page) {
-			goto exit_alloc_page;
-		}
-
-		ret = (struct page *) mempool_alloc(cache->mempool, GFP_KERNEL);
-		if (!ret) {
-			mempool_free(page, cache->page_pool);
-			page = NULL;
-			goto exit_alloc_page;
-		}
-
-		/* Populate page struct */
-		set_page_address(page, ret);
-		page->index = (page_address(page) - cache->virt) >> PAGE_SHIFT;
-	} else {
-		page = (struct page *) mempool_alloc(cache->mempool, GFP_KERNEL);
-		if (!page) {
-			goto exit_alloc_page;
-		}
+	//TODO: Map page struct to pages during init, then only pull from page pool during runtime.
+	page = (struct page *) mempool_alloc(cache->page_pool, GFP_KERNEL);
+	if (!page) {
+		goto exit_alloc_page;
 	}
+
+	ret = (struct page *) mempool_alloc(cache->mempool, GFP_KERNEL);
+	if (!ret) {
+		mempool_free(page, cache->page_pool);
+		page = NULL;
+		goto exit_alloc_page;
+	}
+
+	/* Populate page struct */
+	set_page_address(page, ret);
+	page->index = (page_address(page) - cache->virt) >> PAGE_SHIFT;
+
 
 	cache->page_cnt++;
 
@@ -193,12 +184,8 @@ static void fmd_mempool_free_page(struct fmd_device_t *fmd, struct page *page)
 
 	printk(KERN_INFO "%s: %s\n", fmd->dev_name, __func__);
 
-	if (MEM_ALLOC_METHOD == MEM_MANUAL) {
-		mempool_free(page, cache->page_pool);
-	} else {
-		mempool_free(page, cache->mempool);
-	}
-	cache->page_cnt--;
+	mempool_free(page, cache->page_pool);
+        cache->page_cnt--;
 }
 
 /*-------------------------------------------------------------*/

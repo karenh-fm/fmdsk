@@ -28,9 +28,6 @@
 #endif
 #include "fm_dsk.h"
 
-#define MEM_MANUAL  1  /* Use for searching DIMMs in e820 table */
-#define MEM_CMA  2     /* Use for system memory (NOT COMPLETE or TESTED) */
-#define MEM_ALLOC_METHOD    MEM_MANUAL
 
 //TODO: Future Add logic for multiple  e820 memory types
 //#define NUM_E820_TYPES 2
@@ -40,7 +37,4 @@ int fmd_memory_alloc_manual_dsk(struct fmd_device_t *fmd, int e820_type, unsigne
 int fmd_memory_alloc_manual_cache(struct fmd_device_t *fmd, int e820_type, unsigned int nr_pages);
 void fmd_memory_cleanup_manual(struct fmd_device_t *fmd);
 
-int fmd_memory_alloc_cma_dsk(struct fmd_device_t *fmd, int mem_size);
-int fmd_memory_alloc_cma_cache(struct fmd_device_t *fmd, int mem_size);
-void fmd_memory_cleanup_cma(struct fmd_device_t *fmd);
 #endif /* FM_MEM */

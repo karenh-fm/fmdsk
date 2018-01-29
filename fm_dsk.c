@@ -505,22 +505,18 @@ static struct fmd_device_t *fmd_alloc_dev(int i, int dev_type)
 	set_capacity(disk, dsk_nr_pages * (PAGE_SIZE / 512));  /* capacity in 512 byte sectors */
 
 	/* Allocate or discover memory */
-	if (MEM_ALLOC_METHOD == MEM_MANUAL) {
 #if CACHE_PAGES
-		/* For testing purposes, use part of the dsk for the cache.
-		 * Currently only the dsk can be discovered on the test system. */
-		if (fmd_memory_alloc_manual_dsk(fmd, E820_TYPE_PMEM,  dsk_nr_pages - cache_nr_pages) != 0)
-			goto out_free_queue;
-		if (fmd_memory_alloc_manual_cache(fmd, E820_TYPE_PMEM,  cache_nr_pages) != 0)
-			goto out_free_queue;
+	/* For testing purposes, use part of the dsk for the cache.
+	 * Currently only the dsk can be discovered on the test system. */
+	if (fmd_memory_alloc_manual_dsk(fmd, E820_TYPE_PMEM,  dsk_nr_pages - cache_nr_pages) != 0)
+		goto out_free_queue;
+	if (fmd_memory_alloc_manual_cache(fmd, E820_TYPE_PMEM,  cache_nr_pages) != 0)
+		goto out_free_queue;
 #else
-		if (fmd_memory_alloc_manual_dsk(fmd, E820_TYPE_PMEM,  dsk_nr_pages) != 0)
-			goto out_free_queue;
+	if (fmd_memory_alloc_manual_dsk(fmd, E820_TYPE_PMEM,  dsk_nr_pages) != 0)
+		goto out_free_queue;
 #endif
-	} else if (MEM_ALLOC_METHOD == MEM_CMA) {
-		if (fmd_memory_alloc_cma_dsk(fmd, dsk_nr_pages) != 0)
-			goto out_free_queue;
-	}
+
 
 	return fmd;
 
@@ -536,10 +532,7 @@ static void fmd_free_dev(struct fmd_device_t *fmd)
 {
 	printk(KERN_INFO "%s: %s\n", fmd->dev_name, __func__);
 
-    	if (MEM_ALLOC_METHOD == MEM_MANUAL) 
-		fmd_memory_cleanup_manual(fmd);
-	else if (MEM_ALLOC_METHOD == MEM_CMA)
-		fmd_memory_cleanup_cma(fmd);
+	fmd_memory_cleanup_manual(fmd);
 
 	if (fmd->disk) {
 	    del_gendisk(fmd->disk);

@@ -31,18 +31,14 @@ struct fmd_cache_t {
     mempool_t   *mempool;
 
     /* Pool of dynamically allocated page structs,
-     * Used for the MEM_MANUAL contiguous physical memory allocation method 
+     * Used for the MANUAL contiguous physical memory allocation method
      * when the CACHE_PAGES driver feature is enabled. 
-     * The MEM_CMA contiguous physical memory allocation method has pre- 
-     * populated page structures and does not use the page structures below 
      *  
      * NOTE: These page structs are only used within the driver and are not 
      * compatible with the kernel page struct.
      */
-#if (MEM_ALLOC_METHOD == MEM_MANUAL)
     void *page_slab;
     mempool_t *page_pool;
-#endif
 
     /* Cache Radix tree used to manage pages.
      * Allows for fast page lookup and deletion of pages
