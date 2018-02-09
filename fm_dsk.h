@@ -21,6 +21,7 @@
 
 /* Driver features support */
 #define CACHE_PAGES 0   /* 1 = support paging of flash memory via DRAM window */
+                        /*     FIXME: Not fully coded/tested */
 			/* 0 = FUTURE: flash memory and DRAM memory two separate devices
 			       NOW: Detect flash memory only and support as a single device*/
 #define DAX_SUPPORT 0	/* 1 = support DAX byte addressibility (direct_access) */

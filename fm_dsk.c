@@ -203,8 +203,7 @@ static const struct block_device_operations fmd_fops = {
 static void copy_to_fmd(struct fmd_device_t *fmd, const void *src,
 			sector_t sector, size_t n)
 {
-	struct page *page;
-	void *dst;
+	struct fmd_page_t *page;
 	unsigned int offset = (sector & (PAGE_SECTORS-1)) << SECTOR_SHIFT;
 	size_t copy;
 
@@ -213,23 +212,18 @@ static void copy_to_fmd(struct fmd_device_t *fmd, const void *src,
 	page = fmd_radix_tree_lookup_page(fmd, sector);
 	BUG_ON(!page);
 
-	dst = BIO_KMAP_ATOMIC(page, KM_USER1);  /* map fmdsk's memory */
-	memcpy(dst + offset, src, copy);
-	BIO_KUNMAP_ATOMIC(dst, KM_USER1);
-
+	memcpy(page->virt + offset, src, copy);
 	fmd_radix_tree_mark_dirty_page(fmd, page);
 
 	if (copy < n) {
 		src += copy;
 		sector += copy >> SECTOR_SHIFT;
+		offset = (sector & (PAGE_SECTORS-1)) << SECTOR_SHIFT;
 		copy = n - copy;
 		page = fmd_radix_tree_lookup_page(fmd, sector);
 		BUG_ON(!page);
 
-		dst = BIO_KMAP_ATOMIC(page, KM_USER1);
-		memcpy(dst, src, copy);
-		BIO_KUNMAP_ATOMIC(dst, KM_USER1);
-
+		memcpy(page->virt + offset, src, copy);
 		fmd_radix_tree_mark_dirty_page(fmd, page);
 	}
 }
@@ -241,8 +235,7 @@ static void copy_to_fmd(struct fmd_device_t *fmd, const void *src,
 static void copy_from_fmd(void *dst, struct fmd_device_t *fmd,
 			sector_t sector, size_t n)
 {
-	struct page *page;
-	void *src;
+	struct fmd_page_t *page;
 	unsigned int offset = (sector & (PAGE_SECTORS-1)) << SECTOR_SHIFT;
 	size_t copy;
 
@@ -250,9 +243,7 @@ static void copy_from_fmd(void *dst, struct fmd_device_t *fmd,
 	page = fmd_radix_tree_lookup_page(fmd, sector);
 
 	if (page) {  /* cache hit */
-                src = BIO_KMAP_ATOMIC(page, KM_USER1);  /* map fmdsk's memory */
-                memcpy(dst, src + offset, copy);
-                BIO_KUNMAP_ATOMIC(src, KM_USER1);
+                memcpy(dst, page->virt + offset, copy);
         } else { /* cache miss */
                 memset(dst, 0, copy);  /* FIXME: Page Fault*/
         }
@@ -260,13 +251,12 @@ static void copy_from_fmd(void *dst, struct fmd_device_t *fmd,
         if (copy < n) {
 		dst += copy;
 		sector += copy >> SECTOR_SHIFT;
+		offset = (sector & (PAGE_SECTORS-1)) << SECTOR_SHIFT;
 		copy = n - copy;
 
 		page = fmd_radix_tree_lookup_page(fmd, sector);
 		if (page) {  /* cache hit */
-			src = BIO_KMAP_ATOMIC(page, KM_USER1);
-			memcpy(dst, src, copy);
-			BIO_KUNMAP_ATOMIC(src, KM_USER1);
+			memcpy(dst, page->virt + offset, copy);
 		} else { /* cache miss */
 			memset(dst, 0, copy);
 		}
@@ -390,13 +380,6 @@ fmd_make_request(struct request_queue *q, struct bio *bio)
 	if (bio_end_sector(bio) > get_capacity(bdev->bd_disk))
 		goto out;
 
-#if 0
-	if (unlikely(bio->bi_rw & REQ_FLUSH)) {
-		err = 0;
-		fmd_radix_tree_flush_dirty_pages(fmd);
-		goto out;
-	}
-#endif
 
 #if LINUX_VERSION_CODE >= KERNEL_VERSION(4,8,0)
 	rw = op_is_write(bio_op(bio));

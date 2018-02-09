@@ -123,7 +123,7 @@ int fmd_memory_alloc_manual_cache(struct fmd_device_t *fmd, int e820_type, unsig
 	printk(KERN_INFO "%s: %s\n", fmd->dev_name, __func__);
 
 	cache = (struct fmd_cache_t *) fmd->cache;
-	cache->nr_pages = nr_pages;
+	cache->nr_pages_total = nr_pages;
 	cache->phys = fmd_locate_physical_mem(e820_type, nr_pages);
 
 	if (cache->phys == 0) {
@@ -141,7 +141,7 @@ int fmd_memory_alloc_manual_cache(struct fmd_device_t *fmd, int e820_type, unsig
 	}
 
 	/* Allocate cache page pool */
-	if (fmd_mempool_init(fmd) != 0) {
+	if (fmd_pagepool_init(fmd) != 0) {
 		goto err_alloc_manual_dsk;
 	}
 
@@ -165,11 +165,8 @@ void fmd_memory_cleanup_manual(struct fmd_device_t *fmd)
 
 	printk(KERN_INFO "%s: %s\n", fmd->dev_name, __func__);
 
-	if (cache) {
+	if (cache && cache->pagepool) {
 	    fmd_radix_tree_free_pages(fmd);
-	    if (cache->slab || cache->mempool) {
-		 fmd_mempool_cleanup(fmd);
-	    }
 	}
 
 	if (fmd->phys != 0 && fmd->nr_pages != 0) {
@@ -183,10 +180,13 @@ void fmd_memory_cleanup_manual(struct fmd_device_t *fmd)
 	}
 
 	if (cache) {
-		if (cache->phys != 0 && cache->nr_pages != 0) {
-		    release_mem_region(cache->phys, cache->nr_pages * PAGE_SIZE);
+		if (cache->phys != 0 && cache->nr_pages_total != 0) {
+		    release_mem_region(cache->phys,
+			cache->nr_pages_total * PAGE_SIZE);
 		    cache->phys = 0;
-		    cache->nr_pages = 0;
+		    cache->nr_pages_total = 0;
+		    cache->nr_pages_cache = 0;
+		    cache->nr_pages_pagepool = 0;
 		}
 		if (cache->virt) {
 		    iounmap(cache->virt);
